@@ -10,9 +10,10 @@ import cv2
 import os
 import tensorflow as tf
 import time
+from utils import crop_image
 
-def readin_image(readin_path):
-    img_paths = glob.glob(os.path.join(readin_path,'*.jpeg'))
+def readin_image(readin_path,use_crop=True):
+    img_paths = glob.glob(os.path.join(readin_path,'*.jpg'))
     img_num = len(img_paths)
     [dimx,dimy,dimz] = cv2.imread(img_paths[0]).shape
     flatten_img_stack = np.zeros([dimx*dimy,img_num])
@@ -21,6 +22,7 @@ def readin_image(readin_path):
         img_bgr = cv2.imread(img_paths[i])
         img_stack[:,:,i] = cv2.cvtColor(img_bgr,cv2.COLOR_BGR2GRAY)
         flatten_img_stack[:,i] = cv2.cvtColor(img_bgr,cv2.COLOR_BGR2GRAY).flatten('C')
+    img_stack = crop_image(img_stack)
     return flatten_img_stack, img_stack, dimx, dimy,img_num
 
 
@@ -65,13 +67,26 @@ def frame_diff(flatten_img_stack,img_stack,use_flatten=False):
             previous = this
         return diff_stack
 
+def std(img_seq):
+    dimx,dimy,dimz = img_seq.shape
+    img_sum = np.zeros([dimx,dimy])
+    for i in range(dimz):
+        img_sum += img_seq[:,:,i]
+    img_mean = img_sum/dimz
+    img_var = np.zeros([dimx,dimy])
+    for i in range(dimz):
+        img_var += np.power((img_seq[:,:,i]-img_mean),2)
+    return np.sqrt(img_var)
+
+
 
 def img_freq_analysis():
-
-    PLOT_IMAGE = False
+    # readin_path = '/Users/shichao/Downloads'
+    readin_path = '/Users/shichao/workding_dir/data'
+    PLOT_IMAGE = True
     if PLOT_IMAGE:
         PLT_SHOW = True
-        readin_path = '/Users/shichao/Downloads'
+
         [flatten_img_stack, img_stack, dimx, dimy, img_num] = readin_image(readin_path)
         diff_start = time.time()
         diff_stack = frame_diff(flatten_img_stack,img_stack,use_flatten=False)
@@ -91,7 +106,8 @@ def img_freq_analysis():
 
         # use standivation
         std_start = time.time()
-        seq_std = img_stack.std(axis=2)
+        # seq_std = img_stack.std(axis=2)
+        seq_std = std(img_stack)
         dst = np.zeros(img_stack.shape[:2])
         cv2.normalize(seq_std, dst, cv2.NORM_MINMAX)
         seq_std_norm_255 = (255 * dst).astype(np.uint8)
@@ -135,7 +151,7 @@ def img_freq_analysis():
 
 
     else:
-        readin_path = '/Users/shichao/Downloads'
+
         [flatten_img_stack, img_stack, dimx, dimy, img_num] = readin_image(readin_path)
         flatten_diff_stack = frame_diff(flatten_img_stack,img_stack,use_flatten=True)
         low_pass_video_sig = low_pass(flatten_img_stack, img_stack, dimx, dimy, True)
