@@ -7,7 +7,7 @@ import time
 import matplotlib.pyplot as plt
 from utils import readin_image,arbitrary_frame_diff,crop_image
 
-def main():
+def frameDiff2std():
     readin_path = '/Users/shichao/workding_dir/data'
     img_stack = readin_image(readin_path=readin_path,start_num=1)
     CROP_IMAGE = False
@@ -102,7 +102,8 @@ def main():
     # plt.imshow(seq_std)
     # plt.title('standard devivation')
 
-
+def main():
+    frameDiff2std()
 
 if __name__ == '__main__':
     main()
