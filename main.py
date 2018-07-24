@@ -6,6 +6,10 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 from utils import readin_image,arbitrary_frame_diff,crop_image
+from skimage.morphology import binary_dilation
+from skimage.measure import regionprops
+from skimage.measure import label
+
 
 def frameDiff2std():
     readin_path = '/Users/shichao/workding_dir/data'
@@ -13,52 +17,81 @@ def frameDiff2std():
     img_stack = readin_image(readin_path=readin_path,maxim_num=img_num,start_num=1)
     CROP_IMAGE = False
     FRAME_DIFF_USE_MASK = True
+    USE_NORM = False
+    bbox_thresh = 700
     if CROP_IMAGE:
         img_stack = crop_image(img_stack)
-    arbitrary_number = 20
-    seq_length = 5
+    arbitrary_number = 5 # a small arbitrary_number gets better result
+    seq_length = 3 # a small seq_length gets better result
     seq_multi_frame_diff = 255
     seq_multi_std = 255
     [dimx,dimy,_] = img_stack.shape
+    is_v2 = cv2.__version__.startswith("2.")
+    if is_v2:
+        detector = cv2.SimpleBlobDetector()
+    else:
+        detector = cv2.SimpleBlobDetector_create()
+
     # take the frame difference approach
     diff_start = time.time()
     # diff_stack = frame_diff(flatten_img_stack,img_stack,use_flatten=False)
-    diff_stack = arbitrary_frame_diff(img_stack,arbitrary_number=arbitrary_number)
+    diff_step = 1 # a small diff_step gets better result
+    diff_stack = arbitrary_frame_diff(img_stack,step=arbitrary_number)
     if FRAME_DIFF_USE_MASK:
-        diff_stack_length = diff_stack.shape[2] / seq_length
-        diff_roi_sequence = np.zeros([dimx, dimy, seq_length])
-        for i in range(diff_stack.shape[2]):
-            for j in range(seq_length):
-                diff_roi_sequence[:, :, j] = diff_stack[:, :, j]
+        print('frame_difference uses mask')
+        diff_stack_length = diff_step
+        diff_roi_sequence = np.zeros([dimx, dimy, diff_stack_length])
+        for i in range(0,diff_stack.shape[2],diff_step):
+            for j in range(diff_step):
+                diff_roi_sequence[:, :, j] = diff_stack[:, :, i+j]
             diff_short_sum = np.sum(diff_roi_sequence, axis=2)
-            diff_short_dst = np.zeros(diff_short_sum.shape)
-            cv2.normalize(diff_short_sum, diff_short_dst, norm_type=cv2.NORM_MINMAX)
-            diff_short_seq_std_norm_255 = (255 * diff_short_dst).astype(np.uint8)
-            ret0_short, diff_short_seq_std_norm_thresh = cv2.threshold(diff_short_seq_std_norm_255, 0, 255,
+            if USE_NORM:
+                diff_short_dst = np.zeros(diff_short_sum.shape)
+                cv2.normalize(diff_short_sum, diff_short_dst, norm_type=cv2.NORM_MINMAX)
+                diff_short_seq_std_norm_255 = (255 * diff_short_dst).astype(np.uint8)
+            else:
+                diff_short_dst = diff_short_sum
+                diff_short_seq_std_norm_255 = diff_short_dst.astype(np.uint8)
+            ret0, diff_short_seq_std_norm_thresh = cv2.threshold(diff_short_seq_std_norm_255, 0, 255,
                                                                        cv2.THRESH_OTSU)
+            frame_diff_raw_result = diff_short_seq_std_norm_255
             diff_short_seq_std_norm_thresh_inv = 255 - diff_short_seq_std_norm_thresh
             seq_multi_frame_diff *= diff_short_seq_std_norm_thresh_inv / 255
+            frame_diff_result = seq_multi_frame_diff
 
     else:
         difference_sum = np.sum(diff_stack, axis=2)
         frame_diff_dst = np.zeros(difference_sum.shape)
-        cv2.normalize(difference_sum, frame_diff_dst, norm_type=cv2.NORM_MINMAX)
-        frame_diff_seq_std_norm_255 = (255 * frame_diff_dst).astype(np.uint8)
+        if USE_NORM:
+            cv2.normalize(difference_sum, frame_diff_dst, norm_type=cv2.NORM_MINMAX)
+            frame_diff_seq_std_norm_255 = (255 * frame_diff_dst).astype(np.uint8)
+        else:
+            frame_diff_dst = difference_sum
+            frame_diff_seq_std_norm_255 = frame_diff_dst.astype(np.uint8)
         ret0, frame_diff_seq_std_norm_thresh = cv2.threshold(frame_diff_seq_std_norm_255, 0, 255, cv2.THRESH_OTSU)
 
         # seq_std_norm_thresh = cv2.adaptiveThreshold(seq_std_norm_255, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         #                                             cv2.THRESH_BINARY_INV, 11, 2)
         # seq_std_norm_thresh = cv2.adaptiveThreshold(seq_std_norm_255, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
         #                                             cv2.THRESH_BINARY_INV, 11, 2)
+
+        frame_diff_raw_result = frame_diff_seq_std_norm_255
         frame_diff_seq_std_norm_thresh_inv = 255 - frame_diff_seq_std_norm_thresh
+        frame_diff_result = frame_diff_seq_std_norm_thresh_inv
 
-
-
+    kernel = np.array([[1,0],[0,1]])
+    frame_diff_result = binary_dilation(frame_diff_result)
+    # key_points = detector.detect(frame_diff_result)
+    # print(key_points)
     diff_end = time.time()
     diff_time = diff_end - diff_start
 
     # take the std approach
     std_start = time.time()
+
+
+
+    # ------------------------------------------------
     '''
     use standivation of all images
     seq_std = img_stack.std(axis=2)
@@ -104,7 +137,8 @@ def frameDiff2std():
             std_stack_counter += 1
     std_end = time.time()
     std_time = std_end - std_start
-
+    # ------------------------------------------------------------
+    seq_multi_std = binary_dilation(seq_multi_std)
     # non_zero_frameDiff_ratio = len(np.nonzero(frame_diff_seq_std_norm_thresh_inv)[0]) / float(dimx * dimy)
     # non_zero_std_ratio = len(np.nonzero(seq_std_norm_thresh_inv)[0]) / float(dimx * dimy)
     # print('frame difference non zero ratio: {0} with elapsed time {1}'.format(non_zero_frameDiff_ratio, diff_time))
@@ -112,10 +146,20 @@ def frameDiff2std():
 
     print('frame difference non zero  elapsed time {0}'.format(diff_time))
     print('std non zero ratio elapsed time {0}'.format(std_time))
-
+    # print(type(frame_diff_result))
+    label_diff = label(frame_diff_result)
+    label_std = label(seq_multi_std)
+    props_diff = regionprops(label_diff)
+    props_std = regionprops(label_std)
+    # print(len(props_std))
+    for prop_diff,prop_std in zip(props_diff,props_std):
+        if prop_diff.bbox_area > bbox_thresh:
+            print('diff centroid {0}'.format(prop_diff.centroid))
+        if prop_std.bbox_area > bbox_thresh:
+            print('std centroid {0}'.format(prop_std.centroid))
     plt.subplot(221)
     # plt.imshow(seq_std_norm_thresh_inv,cmap='jet')
-    plt.imshow(seq_multi_frame_diff)
+    plt.imshow(frame_diff_result)
     plt.title('sum of {0} frames diff with step{1}'.format(img_num,arbitrary_number))
 
     # plt.subplot(323)
@@ -123,9 +167,9 @@ def frameDiff2std():
     # plt.title('raw frame difference_otsu {0}'.format(arbitrary_number))
 
     plt.subplot(222)
-    plt.hist(diff_short_seq_std_norm_255.flatten(), bins=256, normed=1, facecolor='green', alpha=0.75)
+    plt.hist(frame_diff_raw_result.flatten(), bins=256, normed=1, facecolor='green', alpha=0.75)
     # plt.imshow(frame_diff_seq_std_norm_255)
-    plt.title('frame diff hist with thresh {0}'.format(ret0_short))
+    plt.title('frame diff hist with thresh {0}'.format(ret0))
 
 
 
