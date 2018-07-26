@@ -54,7 +54,7 @@ def crop_image(img_seq):
         return cropped_img
 
 
-def readin_image(readin_path,start_num=1):
+def readin_image(readin_path,maxim_num=240,start_num=1):
     '''
     read in all images in one folder in the grey mode and stack the image into a sequence by the ascending order of Arabic
     :param readin_path:
@@ -63,6 +63,8 @@ def readin_image(readin_path,start_num=1):
     '''
     img_paths = glob.glob(os.path.join(readin_path, '*.*'))
     img_vol = len(img_paths)
+
+    img_vol = maxim_num
     filename = os.path.basename(img_paths[0])
     name,ext = os.path.splitext(filename)
     zfill_num = len(name)
@@ -74,7 +76,7 @@ def readin_image(readin_path,start_num=1):
         img_path = os.path.join(readin_path,str(i+start_num).zfill(zfill_num)+ext)
         img_bgr = cv2.imread(img_path)
         img_stack[:,:,i] = cv2.cvtColor(img_bgr,cv2.COLOR_BGR2GRAY)
-        print(i)
+        # print(i)
         # flatten_img_stack[:,i] = cv2.cvtColor(img_bgr,cv2.COLOR_BGR2GRAY).flatten('C')
 
     return img_stack
@@ -102,24 +104,25 @@ def low_pass(flatten_array):
     return low_pass_video_sig
 
 
-def arbitrary_frame_diff(img_stack,arbitrary_number=1):
+def arbitrary_frame_diff(img_stack,step=1):
     '''
     get the sum of difference of two images with arbitrary steps
     :param flatten_img_stack:
     :param img_stack:
-    :param arbitrary_number:
+    :param step:
     :param use_flatten:
     :return:
     '''
 
     [dimx0, dimy0, dimz0] = img_stack.shape
-    diff_stack = np.zeros([dimx0, dimy0, dimz0 - arbitrary_number])
+    diff_stack = np.zeros([dimx0, dimy0, dimz0 - step])
     # previous = img_stack[:,:,0]
-    for i in range(arbitrary_number, dimz0):
+    for i in range(step, dimz0):
         this = img_stack[:, :, i]
-        previous = img_stack[:, :, i - arbitrary_number]
+        previous = img_stack[:, :, i - step]
         tmp = this - previous
-        diff_stack[:, :, i - arbitrary_number] = abs(tmp)
+        diff_stack[:, :, i - step] = abs(tmp)
+        # print(i)
 
     # [dimx1,dimy1] = flatten_img_stack.shape
     # flatten_diff_stack = np.zeros([dimx1,dimy1-arbitrary_number])
