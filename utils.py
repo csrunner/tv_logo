@@ -153,4 +153,58 @@ def std(img_seq):
     return np.sqrt(img_var)
 
 
+def get_connected_components(bin_image):
+    '''
+    Method: One component at a time connected component labeling
+        Input:
+    :param bin_image: Binary Image (h x w array of 0 and non-zero values, will created connected components of non-zero)
+    :return: labelled connected components ranging from 0 to counter-1
+    '''
+    h, w = bin_image.shape
+    yc, xc = np.where(bin_image != 0)
+    queue = []
+    connected_array = np.zeros((h, w))  # labeling array
+    counter = 1
+    for elem in range(len(xc)):
+        # iterate over all nonzero elements
+        i = yc[elem]
+        j = xc[elem]
+        if connected_array[i, j] == 0:
+            # not labeled yet proceed
+            connected_array[i, j] = counter
+            queue.append((i, j))
+            while len(queue) != 0:
+                # work through queue
+                current = queue.pop(0)
+                i, j = current
+                if i == 0 and j == 0:
+                    coords = np.array([[i, i + 1], [j + 1, j]])
+                elif i == h - 1 and j == w - 1:
+                    coords = np.array([[i, i - 1], [j - 1, j]])
+                elif i == 0 and j == w - 1:
+                    coords = np.array([[i, i + 1], [j - 1, j]])
+                elif i == h - 1 and j == 0:
+                    coords = np.array([[i, i - 1], [j + 1, j]])
+                elif i == 0:
+                    coords = np.array([[i, i, i + 1], [j - 1, j + 1, j]])
+                elif i == h - 1:
+                    coords = np.array([[i, i, i - 1], [j - 1, j + 1, j]])
+                elif j == 0:
+                    coords = np.array([[i, i + 1, i - 1], [j + 1, j, j]])
+                elif j == w - 1:
+                    coords = np.array([[i, i + 1, i - 1], [j - 1, j, j]])
+                else:
+                    coords = np.array([[i, i, i + 1, i - 1], [j - 1, j + 1, j, j]])
+
+                for k in range(len(coords[0])):
+                    # iterate over neighbor pixels, if  not labeled and not zero then assign current label
+                    if connected_array[coords[0, k], coords[1, k]] == 0 and bin_image[coords[0, k], coords[1, k]] != 0:
+                        connected_array[coords[0, k], coords[1, k]] = counter
+                        queue.append((coords[0, k], coords[1, k]))
+            counter += 1
+
+    return connected_array,counter-1
+
+
+
 
