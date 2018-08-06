@@ -153,11 +153,11 @@ def std(img_seq):
     return np.sqrt(img_var)
 
 
-def get_connected_components(bin_image):
+def get_connected_components(bin_image,connectivity=4):
     '''
     Method: One component at a time connected component labeling
         Input:
-    :param bin_image: Binary Image (h x w array of 0 and non-zero values, will created connected components of non-zero)
+    :param bin_image: Binary Image (h x w array of 0 and non-zero values, will created connected components of non-zero with 4 or 8 connectivity
     :return: labelled connected components ranging from 0 to counter-1
     '''
     h, w = bin_image.shape
@@ -194,7 +194,11 @@ def get_connected_components(bin_image):
                 elif j == w - 1:
                     coords = np.array([[i, i + 1, i - 1], [j - 1, j, j]])
                 else:
-                    coords = np.array([[i, i, i + 1, i - 1], [j - 1, j + 1, j, j]])
+                    if connectivity == 4:
+                        coords = np.array([[i, i, i + 1, i - 1], [j - 1, j + 1, j, j]])
+                    if connectivity == 8:
+                        coords = np.array([[i, i, i + 1, i - 1, i - 1, i - 1, i + 1, i + 1],
+                                           [j - 1, j + 1, j, j, j - 1, j + 1, j + 1, j - 1]])
 
                 for k in range(len(coords[0])):
                     # iterate over neighbor pixels, if  not labeled and not zero then assign current label
