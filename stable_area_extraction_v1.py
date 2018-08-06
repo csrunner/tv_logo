@@ -94,28 +94,10 @@ def std_analysis(data_path,img_vol,img_start_num,use_crop,arbitrary_vol,seq_len)
     return seq_multi_std
 
 
-def get_box_area(binary_label_img):
-    from utils import get_connected_components
-    start = time.time()
-    labelled_img,vols = get_connected_components(binary_label_img)
-    box_area_centroids,sizes = get_centroid(labelled_img,vols)
-    end = time.time()
-    print('elapsed time to get coords: {0}'.format(end - start))
-    return box_area_centroids,sizes
-
-
-def get_centroid(labelled_img,vols):
-    centroids = list()
-    sizes = list()
-    for i in range(vols):
-        coords = np.where(labelled_img.astype(np.uint8)==i+1)
-        centroid = np.mean(coords,axis=1).astype(np.uint8)
-        centroids.append(centroid)
-        sizes.append(coords[0].size)
-    return centroids,sizes
 
 
 def result_analysis():
+    from utils import get_connected_components
     data_path = '/Users/shichao/workding_dir/data'
     img_vol = 120
     img_start_num = 1
@@ -123,55 +105,25 @@ def result_analysis():
     arbitrary_vol = 3
     seq_len = 3
     diff_step = 1
-    bbox_thresh = 500
-
-    width = 150
-    height = 100
-
     diff_result = frame_diff_analysis(data_path=data_path,img_vol=img_vol,img_start_num=img_start_num,use_crop=USE_CROP,
                                       arbitrary_vol=arbitrary_vol,diff_step=diff_step)
     std_result = std_analysis(data_path=data_path,img_vol=img_vol,img_start_num=img_start_num,use_crop=USE_CROP,
                               arbitrary_vol=arbitrary_vol,seq_len=seq_len)
 
 
-
-    diff_bbox = np.zeros(diff_result.shape)
-    std_bbox = np.zeros(std_result.shape)
-
-
     print('use implementation')
-    diff_centroids,diff_sizes = get_box_area(diff_result)
-    std_centroids,std_sizes = get_box_area(std_result)
-    for diff_centroid,diff_size,std_centroid,std_size in zip(diff_centroids,diff_sizes,std_centroids,std_sizes):
-        if diff_size > bbox_thresh:
-            print('diff centroid {0}'.format(diff_centroid))
-            diff_cen_x, diff_cen_y = diff_centroid
-            diff_bbox[max(0, int(diff_cen_x - height / 2)):min(diff_result.shape[0], int(diff_cen_x + height / 2)),
-            max(0, int(diff_cen_y - width / 2)):min(diff_result.shape[1], int(diff_cen_y + width / 2))] = 1
 
-        if std_size > bbox_thresh:
-            print('std centroid {0}'.format(std_centroid))
-            std_cen_x, std_cen_y = std_centroid
-            std_bbox[max(0, int(std_cen_x - height / 2)):min(std_result.shape[0], int(std_cen_x + height / 2)),
-            max(0, int(std_cen_y - width / 2)):min(std_result.shape[1], int(std_cen_y + width / 2))] = 1
-
-    plt.subplot(221)
-    plt.imshow(diff_result)
-    plt.title('sum of {0} frames diff with step{1}'.format(img_vol, arbitrary_vol))
-
-    plt.subplot(222)
-    plt.imshow(std_result)
-    plt.title('std of {0} frames with step {1}'.format(img_vol, arbitrary_vol))
-
-    plt.subplot(223)
-    plt.imshow(diff_bbox)
-    plt.title('bbox of frame diff')
-
-    plt.subplot(224)
-    plt.imshow(std_bbox)
-    plt.title('bbox of std')
-
+    diff_labelled,_ = get_connected_components(diff_result)
+    std_labelled,_ = get_connected_components(std_result)
+    plt.subplot(121)
+    plt.imshow(diff_labelled)
+    plt.title('frame diffrence binary label')
+    plt.subplot(122)
+    plt.imshow(std_labelled)
+    plt.title('std binary label')
     plt.show()
+
+
 
 
 
