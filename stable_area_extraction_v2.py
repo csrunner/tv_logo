@@ -143,6 +143,7 @@ def result_analysis():
     print('use implementation')
     diff_centroids,diff_sizes = get_box_area(diff_result)
     std_centroids,std_sizes = get_box_area(std_result)
+
     diff_labelled,_ = get_connected_components(diff_result)
     std_labelled,_ = get_connected_components(std_result)
     plt.subplot(121)

@@ -86,8 +86,7 @@ def frameDiff2std():
     diff_end = time.time()
     diff_time = diff_end - diff_start
 
-    # take the std approach
-    std_start = time.time()
+
 
 
 
@@ -103,6 +102,8 @@ def frameDiff2std():
     # ret, seq_std_norm_thresh = cv2.threshold(seq_std_norm_255, 0, 255, cv2.THRESH_OTSU)
     # seq_std_norm_thresh_inv = 255 - seq_std_norm_thresh
 
+
+    std_start = time.time()
 
     stack_length = img_num / seq_length
     dimx,dimy,dimz = img_stack.shape

@@ -16,6 +16,8 @@ from itertools import product
 from union_find import *
 import cv2
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 def run(img):
     data = img.load()
@@ -134,7 +136,19 @@ def run(img):
 
 
 def label(img):
+    index = np.where(img!=0)
+    mask = np.zeros(img.shape)
+    mask[index] = 1
+    dimx,dimy = mask.shape
+    full_mask = np.zeros((dimx,dimy,3))
+    labelled_img = np.zeros((dimx,dimy,3))
+    for i in range(3):
+        full_mask[:,:,i] = mask
+    # full_mask = np.broadcast_arrays()
+    # full_mask = np.broadcast_to(mask,(dimx,dimy,3))
     img = img.T
+
+
     data = img
     width, height = img.shape
     # Union find data structure
@@ -309,10 +323,13 @@ def label(img):
             colors[component] = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
             # colors[component] = (0,0,0)
         # Colorize the image
+        labelled_img[y,x,:] = colors[component]
         outdata[x, y] = colors[component]
+        # print(colors.keys())
+    # labelled_img *= full_mask
 
-    return  output_img
-
+    # return np.reshape(output_img.im,(dimx,dimy,3))*full_mask
+    return labelled_img
 
 def main():
     USE_PIL = False
@@ -347,7 +364,9 @@ def main():
         output = label(binary_img)
         plt.imshow(binary_img)
         plt.show()
-        output.show()
+        # output.show()
+        plt.imshow(output)
+        plt.show()
 
 
 

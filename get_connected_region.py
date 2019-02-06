@@ -10,10 +10,10 @@ from matplotlib import pyplot as plt
 print cv2.__version__
 import matplotlib.pyplot as plt
 
-def get_connected_components(bin_image, connectivity=4):
+def get_connected_components(bin_image,connectivity=4):
     '''
     Method: One component at a time connected component labeling
-        Input: Binary Image (h x w array of 0 and non-zero values, will created connected components of non-zero)
+        Input: Binary Image (h x w array of 0 and non-zero values, will created connected components of non-zero with 4 connectivity
         Returns: connected_array -(h x w array where each connected component is labeled with a unique integer (1:counter-1)
                 counter-1 - integer, number of unique connected components
     '''
@@ -51,7 +51,10 @@ def get_connected_components(bin_image, connectivity=4):
                 elif j == w - 1:
                     coords = np.array([[i, i + 1, i - 1], [j - 1, j, j]])
                 else:
-                    coords = np.array([[i, i, i + 1, i - 1], [j - 1, j + 1, j, j]])
+                    if connectivity == 4:
+                        coords = np.array([[i, i, i + 1, i - 1], [j - 1, j + 1, j, j]])
+                    if connectivity == 8:
+                        coords = np.array([[i, i, i + 1, i - 1, i-1, i-1, i+1, i+1], [j - 1, j + 1, j, j, j-1, j+1, j+1, j-1]])
 
                 for k in range(len(coords[0])):
                     # iterate over neighbor pixels, if  not labeled and not zero then assign current label
@@ -69,7 +72,7 @@ def test():
     ret, img = cv2.threshold(img, 0, 255, cv2.THRESH_OTSU)
 
 
-    connected_arr = get_connected_components(img)
+    connected_arr, vol = get_connected_components(img,connectivity=8)
     print(type(connected_arr))
     plt.imshow(connected_arr)
     plt.show()

@@ -9,7 +9,7 @@ import numpy as np
 # from utils import plot_img_hist
 
 # path_in = '/home/shichao/Documents/Image-classification/raw_data'
-# path_out = '/home/shichao/data/temporal_std_thresh'
+path_out = '/home/shichao/data/temporal_std_thresh'
 path_in = '/Users/shichao/Downloads/transport'
 dirs = os.listdir(path_in)
 SAVETOPATH = False
