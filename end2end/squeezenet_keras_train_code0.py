@@ -140,7 +140,8 @@ image_size1 = 224
 image_size2 = 224
 epoch = 20
 
-root = '/home/shichao/mount-dir/data/t2000/lt_corner/data/TV_LOGO_TRAIN_VAL_TEST_tiny'
+#root = '/home/shichao/mount-dir/data/t2000/lt_corner/data/TV_LOGO_TRAIN_VAL_TEST_tiny'
+root = '/home/shichao/mount-dir/data/t2000/logo_tiny_data_train_val_test'
 train_dir = os.path.join(root,'train')
 validation_dir = os.path.join(root,'val')
 
@@ -148,11 +149,11 @@ validation_dir = os.path.join(root,'val')
 #validation_dir = '/home/shichao/mount-dir/2/TV_LOGO_FULL_IMG_TRAIN_VAL_TEST_{0}_{1}/val'.format(image_size1,image_size2)
 #image_size = 224
 
-from keras.applications import VGG16
-
+#from keras.applications import VGG16
+num_classes = 98
 #Load the VGG model
 #vgg_conv = VGG16(weights='imagenet', include_top=False, input_shape=(3,image_size1, image_size2))
-squeeze_conv = SqueezeNet()
+squeeze_conv = SqueezeNet(classes=num_classes)
 # Freeze all the layers
 #for layer in vgg_conv.layers[:-8]:
 #    layer.trainable = False
@@ -178,7 +179,7 @@ model.add(squeeze_conv)
 #model.add(layers.Dense(1024, activation='relu'))
 #model.add(layers.Dropout(0.5))
 model.add(layers.GlobalMaxPooling2D())
-model.add(layers.Dense(104, activation='softmax')) # 102 positive classes + 1 negative class
+model.add(layers.Dense(num_classes, activation='softmax')) # 102 positive classes + 1 negative class
 #print([layer.name for layer in model.get_layer('vgg16').layers])
 print([layer.name for layer in model.layers])
 # Show a summary of the model. Check the number of trainable parameters
@@ -223,7 +224,7 @@ history = model.fit_generator(
       verbose=1)
 
 # Save the Model
-model.save('squeeze_104_classes_ltcorner_nhwc_epoch{0}_batch{1}.h5'.format(epoch,train_batchsize))
+model.save('squeeze_{0}_classes_nhwc_epoch{1}.h5'.format(num_classes,epoch))
 
 # Plot the accuracy and loss curves
 acc = history.history['acc']
