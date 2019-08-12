@@ -3,15 +3,22 @@ import matplotlib.pyplot as plt
 
 import keras
 from keras.preprocessing.image import ImageDataGenerator, load_img
+from keras import optimizers
 
-train_dir = '/home/shichao/data/TV_LOGO_TRAIN_VAL_TEST_tiny/train'
-validation_dir = '/home/shichao/data/TV_LOGO_TRAIN_VAL_TEST_tiny/val'
-image_size = 224
+data_dir = '/home/shichao/mount-dir/data/t2000/logo_tiny_data_train_val_test'
+
+train_dir = os.path.join(data_dir,'train')
+validation_dir = os.path.join(data_dir,'val')
+
+image_size_w = 224
+image_size_h = 224
+
+num_classes = 98
 
 from keras.applications.resnet50 import ResNet50
 
 #Load the VGG model
-resnet50_conv = ResNet50(weights='imagenet', include_top=False, input_shape=(image_size, image_size, 3))
+resnet50_conv = ResNet50(weights='imagenet', include_top=False, input_shape=(image_size_w, image_size_h, 3))
 
 '''
 # Freeze all the layers
@@ -39,7 +46,7 @@ model.add(resnet50_conv)
 model.add(layers.Flatten())
 model.add(layers.Dense(1024, activation='relu'))
 model.add(layers.Dropout(0.5))
-model.add(layers.Dense(104, activation='softmax')) # N positive classes + 1 negative class
+model.add(layers.Dense(num_classes, activation='softmax')) # N positive classes + 1 negative class
 
 
 # Show a summary of the model. Check the number of trainable parameters
@@ -56,14 +63,14 @@ val_batchsize = 16
 # Data Generator for Training data
 train_generator = train_datagen.flow_from_directory(
         train_dir,
-        target_size=(image_size, image_size),
+        target_size=(image_size_w, image_size_h),
         batch_size=train_batchsize,
         class_mode='categorical')
 
 # Data Generator for Validation data
 validation_generator = validation_datagen.flow_from_directory(
         validation_dir,
-        target_size=(image_size, image_size),
+        target_size=(image_size_w, image_size_h),
         batch_size=val_batchsize,
         class_mode='categorical',
         shuffle=False)
@@ -82,8 +89,13 @@ history = model.fit_generator(
       validation_steps=validation_generator.samples/validation_generator.batch_size,
       verbose=1)
 
+import time
+now = int(time.time())
+timeStruct = time.localtime(now)
+strTime = time.strftime("%Y-%m-%d-%H-%M", timeStruct)
+
 # Save the Model
-model.save('resnet50_last4_layers.h5')
+model.save('resnet50_last4_layers_{0}.h5'.format(strTime))
 
 # Plot the accuracy and loss curves
 acc = history.history['acc']
@@ -96,7 +108,7 @@ epochs = range(len(acc))
 # Create a generator for prediction
 validation_generator = validation_datagen.flow_from_directory(
         validation_dir,
-        target_size=(image_size, image_size),
+        target_size=(image_size_w, image_size_h),
         batch_size=val_batchsize,
         class_mode='categorical',
         shuffle=False)
