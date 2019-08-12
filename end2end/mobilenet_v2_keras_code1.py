@@ -3,11 +3,13 @@ import matplotlib.pyplot as plt
 
 import keras
 from keras.preprocessing.image import ImageDataGenerator, load_img
-
-train_dir = '/home/shichao/data/TV_LOGO_TRAIN_VAL_TEST_tiny/train'
-validation_dir = '/home/shichao/data/TV_LOGO_TRAIN_VAL_TEST_tiny/val'
+import os
+data_dir = '/home/shichao/mount-dir/data/t2000/logo_tiny_data_train_val_test'
+train_dir = os.path.join(data_dir,'train')
+validation_dir = os.path.join(data_dir,'val')
 image_size = 224
 
+num_classes = 98
 #from keras.applications.resnet50 import ResNet50
 
 from keras.applications.mobilenet_v2 import MobileNetV2 
@@ -41,7 +43,7 @@ model.add(mobilenet_v2_conv)
 model.add(layers.Flatten())
 model.add(layers.Dense(1024, activation='relu'))
 model.add(layers.Dropout(0.5))
-model.add(layers.Dense(104, activation='softmax')) # N positive classes + 1 negative class
+model.add(layers.Dense(num_classes, activation='softmax')) # N positive classes + 1 negative class
 
 
 # Show a summary of the model. Check the number of trainable parameters
@@ -84,8 +86,13 @@ history = model.fit_generator(
       validation_steps=validation_generator.samples/validation_generator.batch_size,
       verbose=1)
 
+import time
+now = int(time.time())
+timeStruct = time.localtime(now)
+strTime = time.strftime("%Y-%m-%d-%H-%M", timeStruct)
+
 # Save the Model
-model.save('mobilenet_v2_all_layers.h5')
+model.save('mobilenet_v2_all_layers_{0}.h5'.format(strTime))
 
 # Plot the accuracy and loss curves
 acc = history.history['acc']
