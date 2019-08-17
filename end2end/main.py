@@ -19,10 +19,19 @@ from keras.preprocessing.image import ImageDataGenerator, load_img
 import numpy as np
 import os
 
+
+
+
 def get_network(args):
     if args.net == 'squeezenet':
         from squeezenet import SqueezeNet
         net = SqueezeNet
+    elif args.net == 'shufflenet_v2':
+        from shufflenet_v2 import ShuffleNetV2
+        net = ShuffleNetV2
+    elif args.net == 'mobilenet_v2':
+        from keras.applications.mobilenet_v2 import MobileNetV2
+        net = MobileNetV2
     else:
         raise RuntimeError('the network is not supported yet')
     return net
@@ -30,8 +39,7 @@ def get_network(args):
 def main():
 
 
-    image_size1 = 640
-    image_size2 = 480
+
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
@@ -42,6 +50,8 @@ def main():
     # parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('-path', type=str, default='./', help='root data path')
     parser.add_argument('-e',type=int,default=20,help='epoch')
+    parser.add_argument('-width',type=int,default=224,help='image width')
+    parser.add_argument('-height',type=int,default=224,help='image height')
     args = parser.parse_args()
 
     root = args.path
@@ -49,13 +59,16 @@ def main():
     validation_dir = os.path.join(root,'val')
     num_classes = len(os.listdir(train_dir))
     epoch = args.e
+    image_size1 = args.width
+    image_size2 = args.height
 
     net = get_network(args)
-    conv = net(classes=num_classes)
+    conv = net(input_shape=(args.width,args.height,3),classes=num_classes)
     model = models.Sequential()
     model.add(conv)
 
-    model.add(GlobalMaxPooling2D())
+    if args.net in ('squeezenet'):
+        model.add(GlobalMaxPooling2D())
     model.add(Dense(num_classes, activation='softmax'))
     model.summary()
     train_datagen = ImageDataGenerator(rescale=1. / 255)
@@ -69,7 +82,7 @@ def main():
         target_size=(image_size1, image_size2),
         batch_size=train_batchsize,
         class_mode='categorical')
-
+    num_training_images = len(train_generator.filenames)
     # Data Generator for Validation data
     validation_generator = validation_datagen.flow_from_directory(
         validation_dir,
@@ -93,7 +106,11 @@ def main():
         verbose=1)
 
     # Save the Model
-    model.save('squeeze_{0}_classes_nhwc_epoch{1}.h5'.format(num_classes, epoch))
+    import time
+    now = int(time.time())
+    timeStruct = time.localtime(now)
+    strTime = time.strftime("%Y-%m-%d-%H-%M", timeStruct)
+    model.save('{0}_{1}_classes_{2}_w{3}h{4}.h5'.format(args.net,num_classes,timeStruct,args.w,args.h))
 
     # Plot the accuracy and loss curves
     acc = history.history['acc']
