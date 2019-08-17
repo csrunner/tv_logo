@@ -63,7 +63,10 @@ def main():
     image_size2 = args.height
 
     net = get_network(args)
-    conv = net(input_shape=(args.width,args.height,3),classes=num_classes)
+    if args.net in ['mobilenet_v2']:
+        conv = net(input_shape=(args.width, args.height, 3), classes=num_classes, weights=None)
+    else:
+        conv = net(input_shape=(args.width, args.height, 3), classes=num_classes)
     model = models.Sequential()
     model.add(conv)
 
